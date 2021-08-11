@@ -17,6 +17,7 @@ type ApiOpsInterface interface {
 	CreateTables() error
 }
 
+// CreateTables use for creating our tables at the beginning of the program
 func (d *DBHolder) CreateTables() error {
 	err := d.PingingDB()
 	if err != nil {

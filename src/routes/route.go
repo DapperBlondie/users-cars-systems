@@ -9,6 +9,7 @@ import (
 func ApiRoutes() http.Handler {
 	mux := chi.NewRouter()
 
+	mux.Use(handlers.ApiConf.EnableCORS)
 	mux.Get("/status", handlers.ApiConf.CheckStatus)
 
 	return mux
