@@ -15,12 +15,21 @@ import (
 const (
 	HOST   = "localhost"
 	PORT   = ":9090"
-	DBNAME = "app_db.db"
+	DBNAME = "./app-db.db"
 )
 
 var session *scs.SessionManager
 
 func main() {
+	err := runApp()
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return
+	}
+}
+
+// runApp a function for creating our app with entire configuration
+func runApp() error {
 	session = scs.New()
 	session.Lifetime = 24 * time.Hour
 	session.Cookie.Persist = true
@@ -30,7 +39,13 @@ func main() {
 	dbh, err := repo.NewDriver(DBNAME)
 	if err != nil {
 		zerolog.Fatal().Msg(err.Error())
-		return
+		return err
+	}
+
+	err = dbh.CreateTables()
+	if err != nil {
+		zerolog.Fatal().Msg(err.Error())
+		return err
 	}
 
 	handlers.NewApiConf(session, dbh)
@@ -57,5 +72,5 @@ func main() {
 
 	<-sigC
 
-	return
+	return nil
 }
