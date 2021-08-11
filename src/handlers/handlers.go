@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"github.com/DapperBlondie/users-cars-systems/src/repo"
 	"github.com/alexedwards/scs/v2"
 	zerolog "github.com/rs/zerolog/log"
 	"log"
@@ -17,13 +18,15 @@ type StatusIdentifier struct {
 
 type ApiConfig struct {
 	ScsManager *scs.SessionManager
+	DHolder    *repo.DBHolder
 }
 
 var ApiConf *ApiConfig
 
-func NewApiConf(scs *scs.SessionManager) {
+func NewApiConf(scs *scs.SessionManager, dh *repo.DBHolder) {
 	ApiConf = &ApiConfig{
 		ScsManager: scs,
+		DHolder:    dh,
 	}
 }
 
