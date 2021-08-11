@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"github.com/DapperBlondie/users-cars-systems/src/models"
 	zerolog "github.com/rs/zerolog/log"
 	"time"
 )
@@ -21,6 +22,13 @@ FROM users s INNER JOIN cars r ON ( r.owner_id = s.id )`
 
 type ApiOpsInterface interface {
 	CreateTables() error
+	AddUser(user *models.Users) error
+	AddCar(car *models.Cars) error
+	UpdateUser(user *models.Users) error
+	UpdateCar(car *models.Cars) error
+	DeleteUser(userID int) error
+	GetUserByID(userID int) (*models.Users, error)
+	GetAllUsers(skip int, limit int) ([]*models.Users, error)
 }
 
 // CreateTables use for creating our tables at the beginning of the program

@@ -70,6 +70,7 @@ func dResponseWriter(w http.ResponseWriter, data interface{}, HStat int) error {
 	return errors.New("we could not be able to support data type that you passed")
 }
 
+// CheckStatus just for showing the status of app
 func (ac *ApiConfig) CheckStatus(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, r.Method+" is not available", http.StatusInternalServerError)
