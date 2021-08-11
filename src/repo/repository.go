@@ -8,9 +8,15 @@ import (
 
 const (
 	CarsTable = `CREATE TABLE cars 
-( id integer NOT NULL PRIMARY KEY autoincrement , number_plate varchar(31) NOT NULL , color integer NOT NULL , vin varchar(31) NOT NULL , owner_id integer NOT NULL , CONSTRAINT vin_idx UNIQUE ( vin ) , CONSTRAINT num_idx UNIQUE ( number_plate ) , FOREIGN KEY ( owner_id ) REFERENCES users( id ) ON DELETE CASCADE ON UPDATE CASCADE )`
+( id integer NOT NULL PRIMARY KEY autoincrement , number_plate varchar(31) NOT NULL , color varchar(15) NOT NULL , vin varchar(31) NOT NULL , owner_id integer NOT NULL , CONSTRAINT vin_idx UNIQUE ( vin ) , CONSTRAINT num_idx UNIQUE ( number_plate ) , FOREIGN KEY ( owner_id ) REFERENCES users( id ) ON DELETE CASCADE ON UPDATE CASCADE )`
+
 	UsersTable = `CREATE TABLE users 
-( id integer NOT NULL PRIMARY KEY autoincrement , com_name varchar(100) NOT NULL , sex boolean NOT NULL , birthday time NOT NULL DEFAULT CURRENT_TIME , password char(32) NOT NULL ) `
+( id integer NOT NULL PRIMARY KEY autoincrement , com_name varchar(63) NOT NULL , sex boolean NOT NULL , birthday time NOT NULL DEFAULT CURRENT_TIME , password char(31) NOT NULL )`
+
+	AllCarsAndUsers = `SELECT s.id, s.com_name, s.sex, s.birthday, s.password, r.id, r.number_plate, r.color, r.vin, r.owner_id 
+FROM users s INNER JOIN cars r ON ( r.owner_id = s.id )`
+
+	GetUserCarsById = `SELECT r.id, r.number_plate, r.color, r.vin, r.owner_id FROM users s INNER JOIN cars r ON ( r.owner_id = s.id ) WHERE s.id=?`
 )
 
 type ApiOpsInterface interface {
