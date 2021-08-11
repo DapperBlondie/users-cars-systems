@@ -15,7 +15,7 @@ const (
 ( id integer NOT NULL PRIMARY KEY autoincrement , com_name varchar(63) NOT NULL , sex boolean NOT NULL , birthday time NOT NULL DEFAULT CURRENT_TIME , password char(31) NOT NULL )`
 
 	AllCarsAndUsers = `SELECT s.id, s.com_name, s.sex, s.birthday, s.password, r.id, r.number_plate, r.color, r.vin, r.owner_id 
-FROM users s INNER JOIN cars r ON ( r.owner_id = s.id )`
+FROM users s INNER JOIN cars r ON ( r.owner_id = s.id ) LIMIT ? OFFSET ?`
 
 	GetUserCarsById = `SELECT r.id, r.number_plate, r.color, r.vin, r.owner_id FROM users s INNER JOIN cars r ON ( r.owner_id = s.id ) WHERE s.id=?`
 )
@@ -28,7 +28,7 @@ type ApiOpsInterface interface {
 	UpdateCar(car *models.Cars) error
 	DeleteUser(userID int) error
 	GetUserByID(userID int) (*models.Users, error)
-	GetAllUsers(skip int, limit int) ([]*models.Users, error)
+	GetAllUsers(limit, offset int) ([]*models.Users, error)
 }
 
 // CreateTables use for creating our tables at the beginning of the program
@@ -53,5 +53,13 @@ func (d *DBHolder) CreateTables() error {
 		return err
 	}
 
+	return nil
+}
+
+func (d *DBHolder) AddUser(user *models.Users) error {
+	return nil
+}
+
+func (d *DBHolder) AddCar(car *models.Cars) error {
 	return nil
 }
