@@ -5,7 +5,7 @@ type StatusIdentifier struct {
 	Message string `json:"message"`
 }
 
-// Users holding users data
+// Users holding users data that stored in DB in a structures
 type Users struct {
 	ID           int     `json:"id,omitempty"`
 	CompleteName string  `json:"complete_name"`

@@ -65,6 +65,19 @@ func dResponseWriter(w http.ResponseWriter, data interface{}, HStat int) error {
 
 		_, err = w.Write(outData)
 		return err
+	} else if reflect.Slice == dataType.Kind() {
+		w.WriteHeader(HStat)
+		w.Header().Set("Content-Type", "application/json")
+
+		outData, err := json.MarshalIndent(data, "", "\t")
+		if err != nil {
+			zerolog.Error().Msg(err.Error())
+			w.Write([]byte(err.Error()))
+			return err
+		}
+
+		_, err = w.Write(outData)
+		return err
 	}
 
 	return errors.New("we could not be able to support data type that you passed")
@@ -212,6 +225,7 @@ func (ac *ApiConfig) AddCarHandler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// GetUserHandler use for get a user by its ID with associated cars
 func (ac *ApiConfig) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, r.Method+" is not available", http.StatusInternalServerError)
@@ -238,6 +252,41 @@ func (ac *ApiConfig) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		zerolog.Error().Msg(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	return
+}
+
+// GetAllUsersHandler get everything we have in db by limit & offset
+func (ac *ApiConfig) GetAllUsersHandler(w http.ResponseWriter, r *http.Request) {
+	lmt := r.URL.Query().Get("limit")
+	off := r.URL.Query().Get("offset")
+
+	limit, err := strconv.Atoi(lmt)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	offset, err := strconv.Atoi(off)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	users, err := ac.DHolder.GetAllUsers(limit, offset)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = dResponseWriter(w, users, http.StatusOK)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
 		return
 	}
 

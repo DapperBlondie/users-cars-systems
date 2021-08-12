@@ -17,10 +17,7 @@ const (
 	UsersTable = `CREATE TABLE IF NOT EXISTS users
 ( id integer NOT NULL PRIMARY KEY autoincrement , com_name varchar(63) NOT NULL , sex boolean NOT NULL , birthday time NOT NULL DEFAULT CURRENT_TIME , password char(255) NOT NULL )`
 
-	AllCarsAndUsers = `SELECT s.id, s.com_name, s.sex, s.birthday, s.password, r.id, r.number_plate, r.color, r.vin, r.owner_id 
-FROM users s INNER JOIN cars r ON ( r.owner_id = s.id ) LIMIT ? OFFSET ?`
-
-	GetUserCarsById = `SELECT r.id, r.number_plate, r.color, r.vin, r.owner_id FROM users s INNER JOIN cars r ON ( r.owner_id = s.id ) WHERE s.id=?`
+	GetUserCarsById = `SELECT r.id, r.number_plate, r.color, r.vin FROM users s INNER JOIN cars r ON r.owner_id = s.id WHERE s.id=?`
 )
 
 type ApiOpsInterface interface {
@@ -154,8 +151,6 @@ func (d *DBHolder) GetUserByID(userID int) (*models.Users, error) {
 
 	var user *models.Users = &models.Users{}
 	query := `SELECT id,com_name,sex,birthday FROM users WHERE id=?`
-	queryC := `SELECT r.id, r.number_plate, r.color, r.vin
-			   FROM users s INNER JOIN cars r ON r.owner_id = s.id WHERE s.id=?`
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancel()
 
@@ -170,7 +165,7 @@ func (d *DBHolder) GetUserByID(userID int) (*models.Users, error) {
 		return nil, err
 	}
 
-	results, err := d.DB.QueryContext(ctx, queryC, userID)
+	results, err := d.DB.QueryContext(ctx, GetUserCarsById, userID)
 	defer func(results *sql.Rows) {
 		err = results.Close()
 		if err != nil {
@@ -206,6 +201,57 @@ func (d *DBHolder) GetUserByID(userID int) (*models.Users, error) {
 	user.UsersCars = cars
 
 	return user, nil
+}
+
+// GetAllUsers use for getting all users and associated cars
+func (d *DBHolder) GetAllUsers(limit, offset int) ([]*models.Users, error) {
+	err := d.PingingDB()
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*25)
+	defer cancel()
+
+	var users []*models.Users
+	query := `SELECT id FROM users LIMIT ? OFFSET ?`
+	results, err := d.DB.QueryContext(ctx, query, limit, offset)
+	defer func(results *sql.Rows) {
+		err := results.Close()
+		if err != nil {
+			zerolog.Error().Msg(err.Error())
+			return
+		}
+	}(results)
+
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return nil, err
+	}
+	if results == nil {
+		return nil, errors.New("there is no any data available about users")
+	}
+
+	user := &models.Users{}
+	for results.Next() {
+		err = results.Scan(
+			&user.ID,
+		)
+		if err != nil {
+			zerolog.Error().Msg(err.Error())
+			return nil, err
+		}
+
+		user, err = d.GetUserByID(user.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		users = append(users, user)
+	}
+
+	return users, nil
 }
 
 func (d *DBHolder) UpdateUser(user *models.Users) error {
