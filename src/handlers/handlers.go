@@ -292,3 +292,46 @@ func (ac *ApiConfig) GetAllUsersHandler(w http.ResponseWriter, r *http.Request) 
 
 	return
 }
+
+func (ac *ApiConfig) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, r.Method+" is not available", http.StatusInternalServerError)
+		zerolog.Error().Msg(r.Method + " is not available")
+		return
+	}
+	var user *models.Users = &models.Users{}
+	err := json.NewDecoder(r.Body).Decode(user)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	sPass, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user.Password = string(sPass)
+
+	err = ac.DHolder.UpdateUser(user)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	stat := &models.StatusIdentifier{
+		Ok:      true,
+		Message: "User Deleted",
+	}
+
+	err = dResponseWriter(w, stat, http.StatusOK)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return
+	}
+
+	return
+}

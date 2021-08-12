@@ -254,7 +254,29 @@ func (d *DBHolder) GetAllUsers(limit, offset int) ([]*models.Users, error) {
 	return users, nil
 }
 
+// UpdateUser use for update a user
 func (d *DBHolder) UpdateUser(user *models.Users) error {
+	err := d.PingingDB()
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	query := `UPDATE users SET com_name=?,sex=?,birthday=?,password=? WHERE id=?`
+	_, err = d.DB.ExecContext(ctx, query,
+		user.CompleteName,
+		user.Sex,
+		user.BirthDay,
+		user.Password,
+		user.ID)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return err
+	}
+
 	return nil
 }
 
