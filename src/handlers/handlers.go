@@ -6,6 +6,7 @@ import (
 	"github.com/DapperBlondie/users-cars-systems/src/models"
 	"github.com/DapperBlondie/users-cars-systems/src/repo"
 	"github.com/alexedwards/scs/v2"
+	"github.com/go-chi/chi"
 	zerolog "github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 	_ "golang.org/x/crypto/bcrypt"
@@ -205,6 +206,38 @@ func (ac *ApiConfig) AddCarHandler(w http.ResponseWriter, r *http.Request) {
 	err = dResponseWriter(w, stat, http.StatusOK)
 	if err != nil {
 		zerolog.Error().Msg(err.Error())
+		return
+	}
+
+	return
+}
+
+func (ac *ApiConfig) GetUserHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, r.Method+" is not available", http.StatusInternalServerError)
+		zerolog.Error().Msg(r.Method + " is not available")
+		return
+	}
+
+	userID := chi.URLParamFromCtx(r.Context(), "user_id")
+	id, err := strconv.Atoi(userID)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	user, err := ac.DHolder.GetUserByID(id)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = dResponseWriter(w, user, http.StatusOK)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

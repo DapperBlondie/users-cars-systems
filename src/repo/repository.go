@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/DapperBlondie/users-cars-systems/src/models"
@@ -43,13 +44,13 @@ func (d *DBHolder) CreateTables() error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
-	_, err = d.DB.ExecContext(ctx, CarsTable)
+	_, err = d.DB.ExecContext(ctx, UsersTable)
 	if err != nil {
 		zerolog.Fatal().Msg(err.Error())
 		return err
 	}
 
-	_, err = d.DB.ExecContext(ctx, UsersTable)
+	_, err = d.DB.ExecContext(ctx, CarsTable)
 	if err != nil {
 		zerolog.Fatal().Msg(err.Error())
 		return err
@@ -94,7 +95,7 @@ func (d *DBHolder) DeleteUser(userID int) error {
 		return err
 	}
 
-	stmtQ := `DELETE FROM users WHERE id=?`
+	stmtQ := `DELETE FROM users WHERE id=? `
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*6)
 	defer cancel()
 
@@ -140,5 +141,77 @@ func (d *DBHolder) AddCar(car *models.Cars) error {
 		return err
 	}
 
+	return nil
+}
+
+// GetUserByID use for getting models.Users information with models.Cars
+func (d *DBHolder) GetUserByID(userID int) (*models.Users, error) {
+	err := d.PingingDB()
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return nil, err
+	}
+
+	var user *models.Users = &models.Users{}
+	query := `SELECT id,com_name,sex,birthday FROM users WHERE id=?`
+	queryC := `SELECT r.id, r.number_plate, r.color, r.vin
+			   FROM users s INNER JOIN cars r ON r.owner_id = s.id WHERE s.id=?`
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+	defer cancel()
+
+	result := d.DB.QueryRowContext(ctx, query, userID)
+	err = result.Scan(&user.ID,
+		&user.CompleteName,
+		&user.Sex,
+		&user.BirthDay,
+	)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return nil, err
+	}
+
+	results, err := d.DB.QueryContext(ctx, queryC, userID)
+	defer func(results *sql.Rows) {
+		err = results.Close()
+		if err != nil {
+			zerolog.Error().Msg(err.Error())
+			return
+		}
+	}(results)
+
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return nil, err
+	}
+	if results == nil {
+		return user, nil
+	}
+
+	var cars []*models.Cars = []*models.Cars{}
+	car := &models.Cars{}
+	for results.Next() {
+		err = results.Scan(&car.ID,
+			&car.NumberPlate,
+			&car.Color,
+			&car.VIN,
+		)
+		if err != nil {
+			zerolog.Error().Msg(err.Error())
+			return nil, err
+		}
+
+		cars = append(cars, car)
+	}
+
+	user.UsersCars = cars
+
+	return user, nil
+}
+
+func (d *DBHolder) UpdateUser(user *models.Users) error {
+	return nil
+}
+
+func (d *DBHolder) UpdateCar(car *models.Cars) error {
 	return nil
 }

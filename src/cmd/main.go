@@ -71,6 +71,10 @@ func runApp() error {
 	}()
 
 	<-sigC
+	err = dbh.Dispose()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
