@@ -293,6 +293,7 @@ func (ac *ApiConfig) GetAllUsersHandler(w http.ResponseWriter, r *http.Request) 
 	return
 }
 
+// UpdateUserHandler use for updating a user its ID
 func (ac *ApiConfig) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, r.Method+" is not available", http.StatusInternalServerError)
@@ -319,6 +320,41 @@ func (ac *ApiConfig) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		zerolog.Error().Msg(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	stat := &models.StatusIdentifier{
+		Ok:      true,
+		Message: "User Deleted",
+	}
+
+	err = dResponseWriter(w, stat, http.StatusOK)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return
+	}
+
+	return
+}
+
+// UpdateCarHandler use for updating a car by its id
+func (ac *ApiConfig) UpdateCarHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, r.Method+" is not available", http.StatusInternalServerError)
+		zerolog.Error().Msg(r.Method + " is not available")
+		return
+	}
+	var car *models.Cars = &models.Cars{}
+	err := json.NewDecoder(r.Body).Decode(car)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = ac.DHolder.UpdateCar(car)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
 		return
 	}
 

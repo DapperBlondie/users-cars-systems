@@ -18,6 +18,7 @@ func ApiRoutes() http.Handler {
 	mux.Post("/add-user", handlers.ApiConf.AddUserHandler)
 	mux.Post("/add-car", handlers.ApiConf.AddCarHandler)
 	mux.Post("/update-user", handlers.ApiConf.UpdateUserHandler)
+	mux.Post("/update-car", handlers.ApiConf.UpdateCarHandler)
 
 	return mux
 }

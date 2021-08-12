@@ -280,6 +280,27 @@ func (d *DBHolder) UpdateUser(user *models.Users) error {
 	return nil
 }
 
+// UpdateCar use for update a car by its id
 func (d *DBHolder) UpdateCar(car *models.Cars) error {
+	err := d.PingingDB()
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	query := `UPDATE cars SET number_plate=?,color=?,vin=? WHERE id=?`
+	_, err = d.DB.ExecContext(ctx, query,
+		car.NumberPlate,
+		car.Color,
+		car.VIN,
+		car.ID)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return err
+	}
+
 	return nil
 }
