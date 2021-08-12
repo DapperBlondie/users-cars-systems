@@ -3,18 +3,17 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"github.com/DapperBlondie/users-cars-systems/src/models"
 	"github.com/DapperBlondie/users-cars-systems/src/repo"
 	"github.com/alexedwards/scs/v2"
 	zerolog "github.com/rs/zerolog/log"
-	"log"
+	"golang.org/x/crypto/bcrypt"
+	_ "golang.org/x/crypto/bcrypt"
+	_ "golang.org/x/crypto/scrypt"
 	"net/http"
 	"reflect"
+	"strconv"
 )
-
-type StatusIdentifier struct {
-	Ok      bool   `json:"ok"`
-	Message string `json:"message"`
-}
 
 type ApiConfig struct {
 	ScsManager *scs.SessionManager
@@ -45,7 +44,7 @@ func dResponseWriter(w http.ResponseWriter, data interface{}, HStat int) error {
 
 		outData, err := json.MarshalIndent(data, "", "\t")
 		if err != nil {
-			log.Println(err.Error())
+			zerolog.Error().Msg(err.Error())
 			w.Write([]byte(err.Error()))
 			return err
 		}
@@ -58,7 +57,7 @@ func dResponseWriter(w http.ResponseWriter, data interface{}, HStat int) error {
 
 		outData, err := json.MarshalIndent(data, "", "\t")
 		if err != nil {
-			log.Println(err.Error())
+			zerolog.Error().Msg(err.Error())
 			w.Write([]byte(err.Error()))
 			return err
 		}
@@ -78,12 +77,132 @@ func (ac *ApiConfig) CheckStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stat := &StatusIdentifier{
+	stat := &models.StatusIdentifier{
 		Ok:      true,
 		Message: "Everything is alright",
 	}
 
 	err := dResponseWriter(w, stat, http.StatusOK)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return
+	}
+
+	return
+}
+
+// AddUserHandler use for adding users into the db
+func (ac *ApiConfig) AddUserHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, r.Method+" is not available", http.StatusInternalServerError)
+		zerolog.Error().Msg(r.Method + " is not available")
+		return
+	}
+
+	var user *models.Users
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	hashedPass, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user.Password = string(hashedPass)
+
+	err = ac.DHolder.AddUser(user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	stat := &models.StatusIdentifier{
+		Ok:      true,
+		Message: "User Added",
+	}
+
+	err = dResponseWriter(w, stat, http.StatusOK)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return
+	}
+
+	return
+}
+
+// DeleteUserHandler use for deleting users from database
+func (ac *ApiConfig) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, r.Method+" is not available", http.StatusInternalServerError)
+		zerolog.Error().Msg(r.Method + " is not available")
+		return
+	}
+
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		http.Error(w, "user_id is empty, fill it ", http.StatusInternalServerError)
+		return
+	}
+
+	id, err := strconv.Atoi(userID)
+	if err != nil {
+		http.Error(w, "user_id is not an integer", http.StatusInternalServerError)
+		return
+	}
+
+	err = ac.DHolder.DeleteUser(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	stat := &models.StatusIdentifier{
+		Ok:      true,
+		Message: "User Deleted",
+	}
+
+	err = dResponseWriter(w, stat, http.StatusOK)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return
+	}
+
+	return
+}
+
+// AddCarHandler use for adding cars associated with user into db
+func (ac *ApiConfig) AddCarHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, r.Method+" is not available", http.StatusInternalServerError)
+		zerolog.Error().Msg(r.Method + " is not available")
+		return
+	}
+
+	var car *models.Cars
+	err := json.NewDecoder(r.Body).Decode(&car)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = ac.DHolder.AddCar(car)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	stat := &models.StatusIdentifier{
+		Ok:      true,
+		Message: "Car Added",
+	}
+
+	err = dResponseWriter(w, stat, http.StatusOK)
 	if err != nil {
 		zerolog.Error().Msg(err.Error())
 		return

@@ -2,17 +2,19 @@ package repo
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"github.com/DapperBlondie/users-cars-systems/src/models"
 	zerolog "github.com/rs/zerolog/log"
 	"time"
 )
 
 const (
-	CarsTable = `CREATE TABLE cars 
+	CarsTable = `CREATE TABLE IF NOT EXISTS cars  
 ( id integer NOT NULL PRIMARY KEY autoincrement , number_plate varchar(31) NOT NULL , color varchar(15) NOT NULL , vin varchar(31) NOT NULL , owner_id integer NOT NULL , CONSTRAINT vin_idx UNIQUE ( vin ) , CONSTRAINT num_idx UNIQUE ( number_plate ) , FOREIGN KEY ( owner_id ) REFERENCES users( id ) ON DELETE CASCADE ON UPDATE CASCADE )`
 
-	UsersTable = `CREATE TABLE users 
-( id integer NOT NULL PRIMARY KEY autoincrement , com_name varchar(63) NOT NULL , sex boolean NOT NULL , birthday time NOT NULL DEFAULT CURRENT_TIME , password char(31) NOT NULL )`
+	UsersTable = `CREATE TABLE IF NOT EXISTS users
+( id integer NOT NULL PRIMARY KEY autoincrement , com_name varchar(63) NOT NULL , sex boolean NOT NULL , birthday time NOT NULL DEFAULT CURRENT_TIME , password char(255) NOT NULL )`
 
 	AllCarsAndUsers = `SELECT s.id, s.com_name, s.sex, s.birthday, s.password, r.id, r.number_plate, r.color, r.vin, r.owner_id 
 FROM users s INNER JOIN cars r ON ( r.owner_id = s.id ) LIMIT ? OFFSET ?`
@@ -56,10 +58,87 @@ func (d *DBHolder) CreateTables() error {
 	return nil
 }
 
+// AddUser use for adding user into db
 func (d *DBHolder) AddUser(user *models.Users) error {
+	err := d.PingingDB()
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return err
+	}
+
+	birthDay, err := time.Parse("2006-07-02", user.BirthDay)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return err
+	}
+
+	stmtQ := `INSERT INTO users (com_name, sex, birthday, password) VALUES (?, ?, ?, ?)`
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*6)
+	defer cancel()
+
+	_, err = d.DB.ExecContext(ctx, stmtQ,
+		user.CompleteName, user.Sex, birthDay, user.Password)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return err
+	}
+
 	return nil
 }
 
+// DeleteUser use for deleting a user with its own ID
+func (d *DBHolder) DeleteUser(userID int) error {
+	err := d.PingingDB()
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return err
+	}
+
+	stmtQ := `DELETE FROM users WHERE id=?`
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*6)
+	defer cancel()
+
+	_, err = d.DB.ExecContext(ctx, stmtQ, userID)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return err
+	}
+
+	return nil
+}
+
+// AddCar use for adding car into the db
 func (d *DBHolder) AddCar(car *models.Cars) error {
+	err := d.PingingDB()
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return err
+	}
+
+	query := `SELECT EXISTS(SELECT * FROM users WHERE id=?);`
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	result := d.DB.QueryRowContext(ctx, query, car.OwnerID)
+
+	var rs int
+	err = result.Scan(&rs)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return err
+	}
+	if rs == 0 {
+		zerolog.Error().Msg(fmt.Sprintf("%d There is no car with this id=%d\n", rs, car.OwnerID))
+		return errors.New(fmt.Sprintf("There is no car with this id=%d\n", car.OwnerID))
+	}
+
+	query = `INSERT INTO cars (number_plate,color,vin,owner_id) VALUES (?,?,?,?)`
+	_, err = d.DB.ExecContext(ctx, query,
+		car.NumberPlate, car.Color, car.VIN, car.OwnerID)
+	if err != nil {
+		zerolog.Error().Msg(err.Error())
+		return err
+	}
+
 	return nil
 }

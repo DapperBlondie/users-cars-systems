@@ -11,6 +11,10 @@ func ApiRoutes() http.Handler {
 
 	mux.Use(handlers.ApiConf.EnableCORS)
 	mux.Get("/status", handlers.ApiConf.CheckStatus)
+	mux.Get("/delete-user", handlers.ApiConf.DeleteUserHandler)
+
+	mux.Post("/add-user", handlers.ApiConf.AddUserHandler)
+	mux.Post("/add-car", handlers.ApiConf.AddCarHandler)
 
 	return mux
 }
