@@ -9,8 +9,6 @@ import (
 	"github.com/go-chi/chi"
 	zerolog "github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
-	_ "golang.org/x/crypto/bcrypt"
-	_ "golang.org/x/crypto/scrypt"
 	"net/http"
 	"reflect"
 	"strconv"
